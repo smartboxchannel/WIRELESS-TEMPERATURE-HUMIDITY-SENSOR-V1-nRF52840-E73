@@ -65,3 +65,6 @@ OR
 17. M1.4 4mm Round Head Micro Screws(4) - http://ali.ski/sV_W2
 
 18. M1.4 5mm Round Head Micro Screws(4) - http://ali.ski/sV_W2
+
+
+![WIRELESS TEMPERATURE HUMIDITY SENSOR nRF52840 E73 V1](https://github.com/smartboxchannel/WIRELESS-TEMPERATURE-HUMIDITY-SENSOR-V1-nRF52840-E73/blob/master/IMAGES/promo.jpg)
