@@ -13,6 +13,12 @@
 //  File path - C:\Users!!!USER NAME!!!\AppData\Local\Arduino15\packages\sandeepmistry\hardware\nRF5\0.6.0\cores\nRF5               //
 //                                                                                                                                  //
 // ################################################################################################################################ //
+#define SHT20
+//#define SI7020
+
+//#define TESTING
+
+
 bool onoff = 1;
 bool change;
 bool chek_h = true;
@@ -66,8 +72,6 @@ uint32_t SLEEP_TIME;
 
 float batteryVoltageF;
 
-#define SHT20
-//#define SI7020
 
 #ifdef SHT20
 #include "DFRobot_SHT20.h"
@@ -87,7 +91,6 @@ Adafruit_Si7021 sensor = Adafruit_Si7021();
 int16_t mtwr;
 #define MY_TRANSPORT_WAIT_READY_MS (mtwr)
 
-//#define TESTING
 
 //#define MY_PASSIVE_NODE
 //#define MY_NODE_ID 200
