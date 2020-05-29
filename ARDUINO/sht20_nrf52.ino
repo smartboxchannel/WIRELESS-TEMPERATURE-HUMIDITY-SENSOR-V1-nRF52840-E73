@@ -1,13 +1,18 @@
-// ########################################  Thermometer and hygrometer on nRF52840 #################################################### //
-//                                                                                                                                       //
-//                                                                                                                                       //
-//                                                                                                                                       //
-//                                                                                                                                       //
-//                                                                                                                                       //
-//                                                                                                                                       //
-//                                                                                                                                       //
-// ##################################################################################################################################### //
-
+// ########################################  Thermometer and hygrometer on nRF52840 ############################################### //
+//  LED -     P0.05                                                                                                                 //
+//  BUTTON -  P0.03                                                                                                                 //
+//  SDA -     P0.30                                                                                                                 //
+//  SCL -     P0.31                                                                                                                 //
+//  RX -      P0.09                                                                                                                 //
+//  TX -      P0.10                                                                                                                 //
+//                                                                                                                                  //
+//                                                                                                                                  //
+//  For external interrupts to work, you must add __attribute__ ((weak)) in the Winterrups.c file                                   //
+//  before the void GPIOTE_IRQHandler (){} function.                                                                                //
+//                                                                                                                                  //
+//  File path - C:\Users!!!USER NAME!!!\AppData\Local\Arduino15\packages\sandeepmistry\hardware\nRF5\0.6.0\cores\nRF5               //
+//                                                                                                                                  //
+// ################################################################################################################################ //
 bool onoff = 1;
 bool change;
 bool chek_h = true;
