@@ -1,3 +1,3 @@
 ## This works on MySensors
 
-www.mysensors.com
+www.mysensors.org
