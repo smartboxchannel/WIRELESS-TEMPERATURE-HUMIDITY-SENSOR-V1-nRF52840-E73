@@ -61,8 +61,18 @@ uint32_t SLEEP_TIME;
 
 float batteryVoltageF;
 
-#include "Adafruit_Si7021.h"
+#define SHT20
+//#define SI7020
+
+#ifdef SHT20
+#include "DFRobot_SHT20.h"
+DFRobot_SHT20    sensor; // https://github.com/DFRobot/DFRobot_SHT20
+#endif
+
+#ifdef SI7020
+#include "Adafruit_Si7021.h" // https://github.com/adafruit/Adafruit_Si7021
 Adafruit_Si7021 sensor = Adafruit_Si7021();
+#endif
 
 #ifndef MY_DEBUG
 #define MY_DISABLED_SERIAL
@@ -295,6 +305,11 @@ void setup() {
   }
 #endif
   interrupt_Init();
+  wait(30);
+
+#ifdef SHT20
+  sensor.initSHT20();
+#endif
 }
 
 
@@ -627,8 +642,11 @@ static __INLINE uint8_t battery_level_in_percent(const uint16_t mvolts)
 //####################################### SENSOR DATA ##################################################
 
 void readData() {
+#ifdef SI7020
   sensor.begin();
   wait(50);
+#endif
+
   temperatureSend = sensor.readTemperature();
   temperature = round(temperatureSend);
   if (chek_h == true) {
@@ -657,6 +675,7 @@ void readData() {
   } else {
     chek_h = true;
   }
+
 
   if (temperature < 0) {
     temperature = 0;
