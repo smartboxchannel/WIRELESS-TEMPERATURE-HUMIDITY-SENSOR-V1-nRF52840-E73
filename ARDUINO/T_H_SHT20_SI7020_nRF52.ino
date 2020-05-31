@@ -17,6 +17,7 @@
 #define SI7020
 
 //#define TESTING
+#define RF52840 // If you use a nRF52840, if you use nRF52832, then disable it
 
 
 bool onoff = 1;
@@ -51,9 +52,10 @@ int16_t temperature;
 int16_t humidity;
 float old_temperature;
 float old_humidity;
-float tempThreshold = 1.0;
-float humThreshold = 5.0;
+float tempThreshold = 0.5; // порог сравнения в предыдущими показаниями температуры
+float humThreshold = 3.0; // порог сравнения в предыдущими показаниями влажности
 int16_t nRFRSSI;
+int16_t old_nRFRSSI;
 int16_t myid;
 int16_t mypar;
 int16_t old_mypar = -1;
@@ -105,7 +107,7 @@ int16_t mtwr;
 #ifdef SI7020
 #define SN "EFEKTA T&H SI7020"
 #endif
-#define SV "1.92"
+#define SV "1.94"
 
 #define TEMP_ID 1
 #define HUM_ID 2
@@ -150,7 +152,7 @@ void before()
 
 
   //##############################################################
-  // If you use a nRF52840, if you use nRF52832, then delete it
+#ifdef RF52840
 
   if (((NRF_UICR->PSELRESET[0] & UICR_PSELRESET_CONNECT_Msk) != (UICR_PSELRESET_CONNECT_Connected << UICR_PSELRESET_CONNECT_Pos)) ||
       ((NRF_UICR->PSELRESET[1] & UICR_PSELRESET_CONNECT_Msk) != (UICR_PSELRESET_CONNECT_Connected << UICR_PSELRESET_CONNECT_Pos))) {
@@ -164,6 +166,7 @@ void before()
     while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {}
     NVIC_SystemReset();
   }
+#endif
   //################################################################
 
   NRF_POWER->DCDCEN = 1;
@@ -178,8 +181,6 @@ void before()
   NRF_PWM2  ->ENABLE = 0;
   NRF_TWIM1 ->ENABLE = 0;
   NRF_TWIS1 ->ENABLE = 0;
-
-  NRF_RADIO->TXPOWER = 8;
 
 #ifndef MY_DEBUG
   NRF_UART0->ENABLE = 0;
@@ -207,7 +208,7 @@ void before()
   }
   //battSend = 1; // для теста, 1 час
 
-  timeConf();
+  default_param();
 
   digitalWrite(BLUE_LED, LOW);
   wait(50);
@@ -324,6 +325,12 @@ void setup() {
     _transportSM.failedUplinkTransmissions = 0;
   }
 #endif
+
+#ifdef RF52840
+  NRF_RADIO->TXPOWER = 8;
+  wait(10);
+#endif
+
   interrupt_Init();
   wait(30);
 
@@ -447,7 +454,7 @@ void loop() {
             sendData();
             change = 0;
           }
-          nosleep = 0;
+          nosleep = false;
         }
       } else {
         if (millis() - configMillis > 20000) {
@@ -500,18 +507,7 @@ void loop() {
           }
         }
       } else {
-        readData();
-        if (change == true) {
-          sendData();
-          change = 0;
-        }
-        cpCount++;
-        if (cpCount == cpNom) {
-          check_parent();
-          cpCount = 0;
-        } else {
-          nosleep = false;
-        }
+        check_parent();
       }
     }
   }
@@ -550,16 +546,16 @@ void readBatt() {
     batteryVoltageF = (float)batteryVoltage / 1000.00;
     CORE_DEBUG(PSTR("battery voltage: %d\n"), batteryVoltage);
     CORE_DEBUG(PSTR("battery percentage: %d\n"), battery);
-    bch = 1;
+    if (battery != old_battery) {
+      bch = true;
+      old_battery = battery;
+    }
   }
 }
 
 
 void batLevSend() {
   if (BATT_TIME != 0) {
-    //if (battery < 0) {
-    //battery = 0;
-    // }
     if (battery > 100) {
       battery = 100;
     }
@@ -602,7 +598,9 @@ void batLevSend() {
     } else {
       CORE_DEBUG(PSTR("MyS: SEND BATTERY VOLTAGE\n"));
     }
-    lqSend();
+    if (bch == true) {
+      lqSend();
+    }
   }
 }
 
@@ -616,15 +614,18 @@ void lqSend() {
   if (nRFRSSI > 100) {
     nRFRSSI = 100;
   }
-  check = send(sqMsg.set(nRFRSSI));
-  if (!check) {
-    _transportSM.failedUplinkTransmissions = 0;
-    wait(100);
+  if (nRFRSSI != old_nRFRSSI) {
     check = send(sqMsg.set(nRFRSSI));
-    _transportSM.failedUplinkTransmissions = 0;
-  } else {
-    CORE_DEBUG(PSTR("MyS: SEND LINK QUALITY\n"));
-    CORE_DEBUG(PSTR("MyS: LINK QUALITY %: %d\n"), nRFRSSI);
+    if (!check) {
+      _transportSM.failedUplinkTransmissions = 0;
+      wait(100);
+      check = send(sqMsg.set(nRFRSSI));
+      _transportSM.failedUplinkTransmissions = 0;
+    } else {
+      CORE_DEBUG(PSTR("MyS: SEND LINK QUALITY\n"));
+      CORE_DEBUG(PSTR("MyS: LINK QUALITY %: %d\n"), nRFRSSI);
+    }
+    old_nRFRSSI = nRFRSSI;
   }
 }
 
@@ -665,11 +666,6 @@ static __INLINE uint8_t battery_level_in_percent(const uint16_t mvolts)
 //####################################### SENSOR DATA ##################################################
 
 void readData() {
-  //#ifdef SI7020
-  // sensor.begin();
-  // wait(50);
-  //#endif
-
   temperatureSend = sensor.readTemperature();
   temperature = round(temperatureSend);
   if (chek_h == true) {
@@ -811,26 +807,28 @@ void sendData() {
 
 
 void timeConf() {
-  if (timeSend != 0) {
-    SLEEP_TIME = timeSend * minuteT;
-  } else {
-    if (battSend != 0) {
-      SLEEP_TIME = battSend * minuteT * 60;
-    } else {
-      SLEEP_TIME = minuteT * 60 * 24;
-    }
-  }
-  if (battSend != 0) {
+  if (flag_nogateway_mode == false) {
     if (timeSend != 0) {
-      BATT_TIME = battSend * 60 / timeSend;
+      SLEEP_TIME = timeSend * minuteT;
     } else {
-      BATT_TIME = 1;
+      if (battSend != 0) {
+        SLEEP_TIME = battSend * minuteT * 60;
+      } else {
+        SLEEP_TIME = minuteT * 60 * 24;
+      }
+    }
+    if (battSend != 0) {
+      if (timeSend != 0) {
+        BATT_TIME = battSend * 60 / timeSend;
+      } else {
+        BATT_TIME = 1;
+      }
+    } else {
+      BATT_TIME = 0;
     }
   } else {
-    BATT_TIME = 0;
+    SLEEP_TIME = 30 * minuteT;
   }
-
-  cpNom = 60 / timeSend;
 }
 
 
@@ -910,7 +908,7 @@ void gpiote_event_handler(uint32_t event_pins_low_to_high, uint32_t event_pins_h
 }
 
 
-//################################################ RESET ########################################################
+//################################################ RESETS ########################################################
 
 void new_device() {
   hwWriteConfig(EEPROM_NODE_ID_ADDRESS, 255);
@@ -918,9 +916,15 @@ void new_device() {
   hwReboot();
 }
 
+void default_param() {
+  old_temperature = 0;
+  old_humidity = 0;
+  old_battery = 255;
+  old_nRFRSSI = -1;
+}
+
 
 //############################################## HAPPY MODE #####################################################
-
 
 void happy_init() {
   //hwWriteConfig(EEPROM_NODE_ID_ADDRESS, 255); // ******************** checking the node config reset *************************
@@ -980,6 +984,7 @@ void config_Happy_node() {
       gateway_fail();
     }
   }
+  timeConf();
 }
 
 
@@ -1018,6 +1023,12 @@ void find_parent_process() {
   flag_find_parent_process = false;
   CORE_DEBUG(PSTR("MyS: STANDART TRANSPORT MODE IS RESTORED\n"));
   err_delivery_beat = 0;
+#ifdef RF52840
+  NRF_RADIO->TXPOWER = 8;
+  wait(10);
+#endif
+  timeConf();
+  default_param();
   nosleep = false;
 }
 
@@ -1025,6 +1036,7 @@ void find_parent_process() {
 void gateway_fail() {
   flag_nogateway_mode = true;
   flag_update_transport_param = false;
+  timeConf();
 }
 
 
