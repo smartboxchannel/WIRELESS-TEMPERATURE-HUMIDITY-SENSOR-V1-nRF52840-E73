@@ -86,6 +86,7 @@ DFRobot_SHT20    sensor; // https://github.com/DFRobot/DFRobot_SHT20
 Adafruit_Si7021 sensor = Adafruit_Si7021();
 #endif
 
+define MY_DEBUG
 #ifndef MY_DEBUG
 #define MY_DISABLED_SERIAL
 #endif
