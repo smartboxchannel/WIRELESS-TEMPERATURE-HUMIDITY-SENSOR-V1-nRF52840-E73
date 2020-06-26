@@ -484,7 +484,17 @@ void loop() {
               digitalWrite(BLUE_LED, onoff);
             }
           }
-          if (millis() - previousMillis > 3000) {
+          if ((millis() - previousMillis > 3000) && (millis() - previousMillis <= 4000)) {
+            ledsOff();
+          }
+           if ((millis() - previousMillis > 4000) && (millis() - previousMillis <= 7000)) {
+            if (millis() - lightMillisR > 45) {
+              lightMillisR = millis();
+              onoff = !onoff;
+              digitalWrite(BLUE_LED, onoff);
+            }
+          }
+           if (millis() - previousMillis > 7000) {
             ledsOff();
           }
         }
@@ -498,14 +508,17 @@ void loop() {
             check_parent();
             nosleep = 0;
           }
-          if ((millis() - previousMillis > 3000) && button_flag == 1)
+          if ((millis() - previousMillis > 4000) && (millis() - previousMillis <= 7000) && button_flag == 1)
           {
-
-            ledsOff();
-            button_flag = 0;
-            buttIntStatus = 0;
-            nosleep = 0;
+           new_device();
           }
+          if (((millis() - previousMillis > 3000) && (millis() - previousMillis <= 4000)) || ((millis() - previousMillis > 7000)) && button_flag == 1)
+            {
+              ledsOff();
+              button_flag = 0;
+              buttIntStatus = 0;
+              nosleep = 0;
+            }
         }
       } else {
         check_parent();
