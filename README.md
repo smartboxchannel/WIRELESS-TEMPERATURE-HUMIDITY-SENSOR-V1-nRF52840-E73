@@ -2,9 +2,9 @@
 
 Temperature and humidity sensor.
 
-#### Donate me :)
+#### Donate me, ..I will make more and faster open devices :)
 
-PayPal: altigraph@yandex.com
+PayPal: altigraph@ya.ru
 
 Yandex Money: 4100140180242
 
